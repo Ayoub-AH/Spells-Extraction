@@ -31,6 +31,11 @@ public class Data {
 		this.url = url;
 		this.filesRoot = filesRoot;
 		this.DataArray = new JSONArray();
+		File directory = new File(this.filesRoot+"BDDR_test");
+
+	    if (!directory.exists()) {
+	        directory.mkdir();
+	    }
 	}
 	
 	public Data() {
@@ -38,6 +43,11 @@ public class Data {
 		this.url="http://www.dxcontent.com/SDB_SpellBlock.asp?SDBID=";
 		this.filesRoot="";
 		this.DataArray = new JSONArray();
+		File directory = new File(this.filesRoot+"BDDR_test");
+
+	    if (!directory.exists()) {
+	        directory.mkdir();
+	    }
 	}
 
 	public void getSpells() {
