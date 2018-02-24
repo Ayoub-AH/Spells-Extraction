@@ -2,8 +2,8 @@
 <classpath>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="C:/Users/Job/Downloads/org.json.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Job/Downloads/mongo-java-driver-3.6.3.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Job/Downloads/sqlite-jdbc-3.21.0.jar"/>
+	<classpathentry kind="lib" path="lib/mongo-java-driver-3.6.3.jar"/>
+	<classpathentry kind="lib" path="lib/org.json.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.21.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
