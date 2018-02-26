@@ -1,14 +1,12 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.sql.SQLException;
@@ -18,13 +16,24 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.MapReduceCommand;
+import com.mongodb.MapReduceOutput;
+import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
+import com.mongodb.WriteConcern;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Data {
 	private int pageNbr;
 	private String url;
 	private String filesRoot;
 	private JSONArray DataArray;
+	private List<BasicDBObject> ListDBSpell = new ArrayList<BasicDBObject>();
 	
 	public Data(int pageNbr, String url, String filesRoot) {
 		this.pageNbr = pageNbr;
@@ -39,7 +48,7 @@ public class Data {
 	}
 	
 	public Data() {
-		this.pageNbr=50; // 1975
+		this.pageNbr=1975; // 1975
 		this.url="http://www.dxcontent.com/SDB_SpellBlock.asp?SDBID=";
 		this.filesRoot="";
 		this.DataArray = new JSONArray();
@@ -53,7 +62,7 @@ public class Data {
 	public void getSpells() {
 		
 		int idPage = 1 ;
-		
+				
 		while(idPage <= this.pageNbr){  
 					
 			final String spellHTMlPath = this.filesRoot+"BDDR_test/SpellHTML"+idPage+".txt";
@@ -231,7 +240,6 @@ public class Data {
 	
 	public void spellDataAnalyzer(String spellPath, int idPage) {
 		
-		
 		try (BufferedReader br = new BufferedReader(new FileReader(spellPath))) {
 
 			String line;
@@ -240,13 +248,9 @@ public class Data {
 			JSONObject currentData = new JSONObject();
 			boolean WizardSpell=false;
 			boolean resistance=false;
-				    
-			final String spellJSONPath = filesRoot+"BDDR_test/SpellJson"+(idPage)+".json";
-			//final File spellJSON = new File(spellJSONPath);
+			BasicDBObject doc = new BasicDBObject();
+
 					
-			// Create a 
-			FileWriter fw = new FileWriter(spellJSONPath, true); 
-			BufferedWriter output = new BufferedWriter(fw);
 									    
 			while ((line = br.readLine()) != null) {
 				// process the line.
@@ -256,8 +260,9 @@ public class Data {
 					
 					// If the line starts with "School" then save the precedent line as name
 				    if(line.startsWith("School")){
-				    	currentData.put("name", out);
-				    	//doc.append("SpellName", out);
+				    	
+						currentData.put("name", out);
+					    doc.append("name", out);
 				    	out="";
 				    	lineNbr++;		
 				    }
@@ -272,18 +277,18 @@ public class Data {
 				if(line.startsWith("Level")){
 					int i=0;
 					
-					// If the the line contains "soercerer/wizard" then search for its level after the string
+					// If the the line contains "sorcerer/wizard" then search for its level after the string
 				    if(line.contains("sorcerer/wizard")){
 				    	WizardSpell=true;
 				    	i=line.indexOf("sorcerer/wizard", 0);
 				    	currentData.put("level", line.substring(i+16,i+17));
-				    	//doc.append("SpellLevel", line.substring(i+16,i+17));
+				    	doc.append("level", line.substring(i+16,i+17));
 				    		
 				    }	// else put a random level for example 99 
 				    else {
 				    	WizardSpell=false;
 				    	currentData.put("level", 99);
-					    //doc.append("SpellLevel", 99);
+					    doc.append("level", 99);
 				    }
 				}
 				
@@ -314,7 +319,7 @@ public class Data {
 				    }
 				    
 				    currentData.put("components", comp);		
-				    //doc.append("components", comp);
+				    doc.append("components", comp);
 				}
 				
 				// If the line starts with "Resistance"
@@ -331,21 +336,41 @@ public class Data {
 				    	
 				    	resistance=true;
 				    }
-				    //doc.append("SpellResistance", resistance);
+				    
 				}
 			}
 			
 			// Add the resistance to the data from here so even if it is not mentioned in the file it will be added
 			currentData.put("spell_resistance", resistance);
+			doc.append("spell_resistance", resistance);
 				    
 			
 			if(WizardSpell) {
-				currentData.put("Type", "sorcerer/wizard");
-				DataArray.put(currentData); 
+				
+				String fileName= currentData.getString("name");
+				if(fileName.contains("/")) 
+					fileName = fileName.substring(0, fileName.indexOf('/'))+"_"+fileName.substring(fileName.indexOf('/')+1);
+				File directory = new File(filesRoot+"BDDR_test");
+				boolean exist = new File(directory, fileName+".json").exists();
+				
+				if(!exist) {
+					
+					// Create a JSON file of the spell
+					final String spellJSONPath = filesRoot+"BDDR_test/"+fileName+".json";
+					FileWriter fw = new FileWriter(spellJSONPath, false); 
+					BufferedWriter output = new BufferedWriter(fw);
+					output.write(""+currentData.toString()+"");
+					output.flush();  
+					output.close();
+					
+					// Save data
+					currentData.put("Type", "sorcerer/wizard"); 
+					DataArray.put(currentData);
+					doc.append("SpellType", "Wizard");
+					ListDBSpell.add(doc);
+				}
+				
 				System.out.println("Spell "+(idPage)+" : "+currentData.toString());
-				output.write(""+currentData.toString()+"");
-				    	
-				//doc.append("SpellType", "Wizard");	    	
 			}
 			else {
 				//currentData.put("type", "Not a sorcerer/wizard");
@@ -354,27 +379,11 @@ public class Data {
 				System.out.println("Not a Sorcerer/Wizard spell");
 				//doc.append("SpellType", "Not Wizard");
 			}
-				       
-			//////////////////////////////////////////////////////////////////////////
-					
-			    	// BasicDBObject doc = new BasicDBObject("name", "MongoDB")
-					//        .append("type", "database")
-					//        .append("count", 1)
-					//        .append("info", currentData.toString());
-			//coll.insert(doc);
 
 			System.out.println("Done");
-
-			//DBObject myDoc = coll.findOne();
-			//System.out.println(myDoc);
-
-			///////////////////////////////////////////////////////////////////////////
-    
-		    System.out.println("----");
+			System.out.println("----");
 				    
-		    // Upadte the Json file and close it, close the spell file too
-			output.flush();  
-			output.close();
+		    // Deelete the spell file
 			br.close();
 			File spellFile = new File(spellPath);
 			spellFile.delete();
@@ -394,21 +403,39 @@ public class Data {
 		
 	}
 	
-	public void sendDataToSQLDB() throws SQLException, JSONException {
+	public void sendDataToDB() throws SQLException, JSONException {
 		
 		SQLiteDB sqDB = new SQLiteDB(filesRoot, "spell.db");
 		sqDB.connect();
 		sqDB.createTable();
+		
+		MongoClient mongoClient = new MongoClient();
+		DB db = mongoClient.getDB( "test" );
+		
+		// Free the collection from any previous data 
+		if(db.collectionExists("SpellCollection"))
+			db.getCollection("SpellCollection").drop();
+		
+		DBCollection coll = db.getCollection("SpellCollection");
+		mongoClient.setWriteConcern(WriteConcern.JOURNALED);
 		
 		for(int i = 0; i < DataArray.length(); i++) {
 			System.out.println("Sending spell "+i+"/"+DataArray.length());
 			JSONObject spell = DataArray.getJSONObject(i);
 			char[] comp = (char[]) spell.get("components");
 			sqDB.insert(spell.getString("name"), spell.getInt("level"), String.valueOf(comp), spell.getBoolean("spell_resistance"));
+			coll.insert(ListDBSpell.get(i));
 		}
-		
+		mongoClient.close();
 		sqDB.close();	
 	}
+	
+	
+	public void getGoodSpells() {
+		getGoodSpellsSQL();
+		getGoodSpellsMongoDB();
+	}
+	
 	
 	public void getGoodSpellsSQL() {
 		
@@ -416,5 +443,34 @@ public class Data {
 		sqDB.connect();
 		sqDB.select_Good_Spells();
 		sqDB.close();
+	}
+	
+	
+	public void getGoodSpellsMongoDB() {
+		
+		MongoClient mongoClient = new MongoClient();
+		DB db = mongoClient.getDB( "test" );
+		
+		DBCollection coll = db.getCollection("SpellCollection");
+		mongoClient.setWriteConcern(WriteConcern.JOURNALED);
+		
+		String map = "function() { "+ 
+	             "if ( (this.level <= 4) && (this.components == \"V\" )) "+
+	             "emit(this.name, this.level);}";
+	   
+		String reduce = "function(key, values) { " +
+
+               "return {level : values};} ";
+	
+		MapReduceCommand cmd = new MapReduceCommand(coll, map, reduce, null, MapReduceCommand.OutputType.INLINE, null);
+
+		MapReduceOutput out = coll.mapReduce(cmd);
+		
+		System.out.println("MongoDB - Spells that can free Pito : ");
+		for (DBObject o : out.results()) {
+			System.out.println(o.toString());
+		}
+		
+		mongoClient.close();
 	}
 }

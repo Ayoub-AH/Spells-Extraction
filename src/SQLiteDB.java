@@ -20,6 +20,8 @@ public class SQLiteDB {
 	// DB Connection 
     public void connect() {
         try {
+        	    	
+        	
             Class.forName("org.sqlite.JDBC");
             String file = this.dbPath + this.dbName;
             this.connection = DriverManager.getConnection("jdbc:sqlite:" + file);
@@ -89,20 +91,20 @@ public class SQLiteDB {
         }
  
         try {
-            String SQL="SELECT * FROM SPELLS WHERE (LEVEL<=? AND SPELL_RESISTANCE=? AND COMPONENT LIKE '%V%')";
+            String SQL="SELECT * FROM SPELLS WHERE (LEVEL<=? AND COMPONENT LIKE 'V')";
             PreparedStatement stmt = connection.prepareStatement(SQL);
             stmt.setInt(1, 4);
-            stmt.setBoolean(2, false);
-            //stmt.setString(3, "V");
             ResultSet rs = stmt.executeQuery();
  
-            System.out.println("Spells that can save Pito : ");
+            System.out.println("SQLite - Spells that can free Pito : ");
             int i=1;
             while (rs.next()) {
-            	//System.out.println(i+" : "+rs.getString("COMPONENT"));
                 System.out.println(i+" : "+rs.getString("NAME")+", level "+rs.getInt("LEVEL"));
             	i++;
             }
+            
+            // Then there is no spell that can save Pito cause i stayed in 1 didn't enter the while loop
+            if(i==1) System.out.println("There's no Spell to save Pito !");
  
             stmt.close();
         } catch (SQLException e) {
