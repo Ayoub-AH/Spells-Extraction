@@ -21,7 +21,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MapReduceCommand;
 import com.mongodb.MapReduceOutput;
-import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.WriteConcern;
 
@@ -45,6 +44,9 @@ public class Data {
 	    if (!directory.exists()) {
 	        directory.mkdir();
 	    }
+	    else {
+	    	for (File f : directory.listFiles()) f.delete();
+	    }
 	}
 	
 	public Data() {
@@ -56,6 +58,9 @@ public class Data {
 
 	    if (!directory.exists()) {
 	        directory.mkdir();
+	    }
+	    else {
+	    	for (File f : directory.listFiles()) f.delete();
 	    }
 	}
 
@@ -239,6 +244,7 @@ public class Data {
 	
 	
 	public void spellDataAnalyzer(String spellPath, int idPage) {
+
 		
 		try (BufferedReader br = new BufferedReader(new FileReader(spellPath))) {
 
@@ -345,7 +351,7 @@ public class Data {
 			doc.append("spell_resistance", resistance);
 				    
 			
-			if(WizardSpell) {
+			if(WizardSpell && idPage!=1326) {
 				
 				String fileName= currentData.getString("name");
 				if(fileName.contains("/")) 
@@ -383,7 +389,7 @@ public class Data {
 			System.out.println("Done");
 			System.out.println("----");
 				    
-		    // Deelete the spell file
+		    // Delete the spell file
 			br.close();
 			File spellFile = new File(spellPath);
 			spellFile.delete();
