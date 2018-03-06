@@ -40,7 +40,7 @@ public class Data {
 		this.filesRoot = filesRoot;
 		this.DataArray = new JSONArray();
 		File directory = new File(this.filesRoot+"BDDR_test");
-
+		
 	    if (!directory.exists()) {
 	        directory.mkdir();
 	    }
@@ -411,6 +411,12 @@ public class Data {
 	
 	public void sendDataToDB() throws SQLException, JSONException {
 		
+		File dbF = new File(this.filesRoot+"spell.db");
+        
+        if(dbF.exists()) {
+        	dbF.delete();
+        }
+        
 		SQLiteDB sqDB = new SQLiteDB(filesRoot, "spell.db");
 		sqDB.connect();
 		sqDB.createTable();
